@@ -1,0 +1,24 @@
+import threading
+import subprocess, shlex
+from time import sleep
+
+comand = "sudo ./lorawan-rpi --deveui feedc0decafef00d --appkey 2a3c5295f053a148e433e872c7104e1c  --subband 2 --skew 10"
+proc = subprocess.Popen(shlex.split(comand),stdin = subprocess.PIPE)
+
+
+def data():
+	input()
+	while True:
+		print("SEND 45\n")
+		try:
+			proc.stdin.write(b"SEND 45\n")
+			proc.stdin.close()
+		except:
+			pass
+		
+		sleep(15)
+
+threading.Thread(target=data).start()
+
+while(True):
+	pass
