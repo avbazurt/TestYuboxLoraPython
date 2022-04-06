@@ -3,14 +3,16 @@ from subprocess import Popen, PIPE, STDOUT, run, TimeoutExpired
 from threading import Semaphore,Thread
 import shlex
 import io
+import codecs
+
 
 class YuboxLora:
-	def __init__(self,deveui,appkey) -> None:
+	def __init__(self, deveui:str, appkey:str, callbackMessage = None) -> None:
 		#Semaphore para controlar flujo
 		self.control_threads = Semaphore(1)
 
 		#Comando para iniciar el proceso
-		comand = "sudo ./lorawan-rpi --deveui {} --appkey {} --subband 2 --skew 10".format(deveui,appkey)
+		comand = "sudo ./lorawan/lorawan-rpi --deveui {} --appkey {} --subband 2 --skew 10".format(deveui,appkey)
 
 		#Ejecuto el comando con Popen
 		self.proceso = Popen(shlex.split(comand),stdin=PIPE,stdout=PIPE)
@@ -43,8 +45,43 @@ class YuboxLora:
 			elif (output == "EVENT JOIN FAIL"):
 				print("EVENT JOIN FAIL, REATRY")
 
-		
-	def SendData(self,msg) -> None:
+
+		#Validamos si se agrego una funcion callback para los mensajes
+		if (callbackMessage == None):
+			return 
+
+		#Variable donde se almacena el mensaje que llega
+		self.CallbackMessage = callbackMessage
+
+		#Inicio el proceso que se encarga verificar
+		#Los mensajes de consola
+		Thread(target=self._ReviewStdoutMessage, daemon=True).start()
+
+
+	def _ReviewStdoutMessage(self):
+		while (True):
+			output = ""
+			output = self.stdout.readline()
+			output = output.rstrip()
+			if ("EVENT RX RSSI" in output and "HEXDATA" in output):
+				#Output tiene el siguiente formato
+				#EVENT RX RSSI -21 SNR 14 HEXDATA 486F6C61436F6D6F
+				list_output = output.split(" ")
+
+				#Separamos los valores importante
+				rssi = list_output[3]
+				hexdata = list_output[7]
+
+				#El mensaje se encuentra en hexadecimal, lo pasamos a string
+				binary_str = codecs.decode(hexdata, "hex")
+				msg_str = str(binary_str,'utf-8')
+
+				#Pasamos el texto al callback
+				self.CallbackMessage(rssi,msg_str)
+
+
+
+	def SendData(self, msg:str) -> None:
 		with self.control_threads:
 			#El proceso requiere pasar un dato en Hexadecimal
 			msg_hex = (msg.encode('utf-8')).hex()
@@ -61,7 +98,7 @@ class YuboxLora:
 					bandera = False
 
 
-	def Close(self):
+	def Close(self)-> None:
 		#Con esta funcion cerramos el proceso
 		with self.control_threads:
 			self.stdin.write("EXIT")
