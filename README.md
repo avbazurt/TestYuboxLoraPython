@@ -9,7 +9,7 @@ El codigo en este repositorio es para envio y recepcion de datos mediante modulo
 ## Requisitos
 Para los codigos _pc, se necesita conectar al MQTT de la RedLora, para ello utilizamos la libreria [paho-mqtt](https://github.com/eclipse/paho.mqtt.python), dentro del repositorio de la libreria estan las instrucciones de como instalarlo en sus dispositivo. Si el estudiante desconoce de estos temas, preparamos el archivo requirements.txt para faciltar el proceso. Abra una terminal de comandos y ejecute el siguiente comando:
 
-::
-pip3 install -r requirements.txt
-::
+
+      pip3 install -r requirements.txt
+
 
